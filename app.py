@@ -5,16 +5,22 @@ import dash_html_components as html
 import pandas as pd
 import plotly.graph_objs as go
 import numpy as np
+import time
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash('visualize-hippocampus', external_stylesheets=external_stylesheets)
 server = app.server
 
-#df = pd.read_csv('pointclouds_col.csv')
-df = pd.read_pickle('pointclouds_col.pkl')
+#df = pd.read_csv('../pointclouds/pointclouds_col.csv')
+df = pd.read_pickle('../pointclouds/pointclouds_col_sat2.pkl')
+#df = pd.read_pickle('pointclouds_col.pkl')
 print('Done loading pointcloud file')
 
-def add_markers( figure_data, point_data, plot_type = 'scatter3d' ):
+# create an arranged array to sweep through the sliders for playing the demo when button is clicked
+sweep = np.append(np.arange(0,-2,-0.1), np.arange(-2,2,0.1))
+slider_vals = np.append(sweep, np.arange(2,-0.1,-0.1))
+
+def add_markers( figure_data, point_data, plot_type = 'scatter3d'):
     indices = []
     point_data = figure_data[0]
     for pd in point_data:
@@ -33,7 +39,7 @@ def add_markers( figure_data, point_data, plot_type = 'scatter3d' ):
                 'size': 15,
                 'opacity': 0.6,
                 'color': figure_data['color_val'],          # set color according to distance from mean as calculated above
-                'colorscale': 'Cividis',
+                'colorscale': 'Hot', #Cividis
                 'cmin': df['color_val'].min(),
                 'cmax': df['color_val'].max(),
                 'colorbar': {
@@ -42,32 +48,36 @@ def add_markers( figure_data, point_data, plot_type = 'scatter3d' ):
             },
             type = plot_type
         )
-
+        
         traces.append(trace)
 
     return traces
-
+    
+def axis_template_3d( title, type='linear' ):
+    return dict(
+        showbackground = True,
+        showline=False,
+        ticks = '',
+        showticklabels=False,
+        backgroundcolor = BACKGROUND,
+        gridcolor = 'rgb(255, 255, 255)',
+        title = title,
+        type = type,
+        zerolinecolor = 'rgb(255, 255, 255)'
+    )
 
 def scatter_plot_3d(
-        data = df,
-        x = df['x'],
-        y = df['y'],
-        z = df['z'],
+        data = df[(df['z0'] == 2) & (df['z1'] == 2) & (df['Status'] == 'HC')],
+        x = df.loc[(df['z0'] == 2) & (df['z1'] == 2) & (df['Status'] == 'HC'), 'x'],
+        y = df.loc[(df['z0'] == 2) & (df['z1'] == 2) & (df['Status'] == 'HC'), 'y'],
+        z = df.loc[(df['z0'] == 2) & (df['z1'] == 2) & (df['Status'] == 'HC'), 'z'],
         xlabel = 'x',
         ylabel = 'y',
         zlabel = 'z',
         plot_type = 'scatter3d',
         markers = [] ):
 
-    def axis_template_3d( title, type='linear' ):
-        return dict(
-            showbackground = True,
-            backgroundcolor = BACKGROUND,
-            gridcolor = 'rgb(255, 255, 255)',
-            title = title,
-            type = type,
-            zerolinecolor = 'rgb(255, 255, 255)'
-        )
+
 
     data = [ dict(
         x = x,
@@ -78,19 +88,19 @@ def scatter_plot_3d(
         marker = {
                 'size': 15,
                 'opacity': 0.6,
-                'color': df['color_val'],          # set color according to distance from mean as calculated above
-                'colorscale': 'Cividis',
+                'color': df.loc[(df['z0'] == 2) & (df['z1'] == 2) & (df['Status'] == 'HC'), 'color_val'],          # set color according to distance from mean as calculated above
+                'colorscale': 'Hot',
                 'cmin': df['color_val'].min(),
                 'cmax': df['color_val'].max(),
                 'colorbar': {
                     'title': 'Distance<br>from mean'
                 }
         }
-
+        
     ) ]
 
     layout = dict(
-        font = dict( family = 'Raleway' ),
+        font = dict( family = 'Raleway'),
         hovermode = 'closest',
         uirevision='same',
         margin = dict( r=20, t=0, l=0, b=0 ),
@@ -108,14 +118,13 @@ def scatter_plot_3d(
     )
 
     if len(markers) > 0:
-        data = data + add_markers( data, markers, plot_type = plot_type )
+        data = data + add_markers( data, markers, plot_type = plot_type)
 
     return dict( data=data, layout = layout)
 
 
 # create layout
 BACKGROUND = 'rgb(230, 230, 230)'
-
 FIGURE = scatter_plot_3d()
 
 app.layout = html.Div(children=[
@@ -123,16 +132,16 @@ app.layout = html.Div(children=[
     html.H1(children='Visualization Tool', style={'color': 'midnightblue', 'font-weight': 'bold'}),
 
     html.Div(children=[
-        html.P('''A visualization tool for viewing the generated point clouds of the hippocampus
+        html.P('''A visualization tool for viewing the generated point clouds of the hippocampus 
         for healthy controls and Alzhemeirs Disease patients using two''', style={'font-style': 'italic'}),
         html.P('''dimensions z0 and z1 for the generation.''', style={'font-style': 'italic'})
     ]),
 
     # set up graph radio buttons and marker size option
     html.Div(children = [
-
+        
         # seting up the graph
-        html.Div([
+        html.Div([             
             dcc.Graph(
                 id='graph',
                 figure = FIGURE
@@ -168,13 +177,13 @@ app.layout = html.Div(children=[
                                     { 'label': 'AD', 'value': 'AD'},
                             ],
                             value='HC'
-                        )
+                        )  
                 ], className="two rows")
 
         ], className='two columns')
 
     ], className="row"),
-
+        
     # set up sliders
 
     html.Div(children = [
@@ -186,9 +195,15 @@ app.layout = html.Div(children=[
                 max=df['z0'].max() - 2,
                 marks={i: '{}'.format(i) for i in range(-2,3)},
                 value=df['z0'].mean() -2,
-                step=0.1
+                step=0.1,
+                updatemode='drag'
             )
-        ], style={'width': '50%'}, className="seven columns"),
+        ], style={'width': '50%'}, className="six columns"),
+
+        html.Div([
+            html.Button('Play', id='z0-button'
+                )
+        ], className='one column'),
 
         html.Div([
             html.Div(id = 'z0-value', children='''z0 = 0''', style={ 'textAlign': 'left', 'color': 'midnightblue', 'font-weight': 'bold'})
@@ -205,22 +220,54 @@ app.layout = html.Div(children=[
                 max=df['z1'].max() - 2,
                 marks={i: '{}'.format(i) for i in range(-2,3)},
                 value=df['z1'].mean() - 2,
-                step=0.1
+                step=0.1,
+                updatemode='drag'
             )
         ], style={'width': '50%'}, className="seven columns"),
+
+        html.Div([
+            html.Button('Play', id='z1-button'
+               )
+        ], className='one column'),
 
         html.Div([
             html.Div(id = 'z1-value', children='''z1 = 0''', style={ 'textAlign': 'left', 'color': 'midnightblue', 'font-weight': 'bold'})
         ], className="one column")
 
-    ], className=" one row", style={'padding': 10})
+    ], className=" one row", style={'padding': 10}),
 
+    dcc.Interval(
+        id='interval-comp-z0',
+        interval=1*750, # in milliseconds
+        n_intervals=0
+    ),
+
+    dcc.Interval(
+    id='interval-comp-z1',
+    interval=1*750, # in milliseconds
+    n_intervals=0
+    ),
+
+    html.Div(id='cached-z0-cont', children=[
+        dcc.Input(
+            id='cached-z0',
+            value='0'
+        )
+    ], style={'display':'none'}),
+
+    html.Div(id='cached-z1-cont', children=[
+        dcc.Input(
+            id='cached-z1',
+            value='0'
+        )
+    ], style={'display':'none'})
+ 
 ], style = {'display': 'inline-block', 'width': '100%'})
 
 
 # here z0 is fixed and we need to calculate interpolation for z1 only
 def calc_z1_interpolaton(df, z0, z1, sub_type):
-    z1_floor = np.floor(z1)
+    z1_floor = np.floor(z1) 
     z1_ceil = np.ceil(z1)
 
     df_type = df[df['Status'] == sub_type]
@@ -240,7 +287,6 @@ def calc_z1_interpolaton(df, z0, z1, sub_type):
     interp_df['color_val'] = col
 
     return interp_df
-
 
 # here z1 is fixed and we need to calculate interpolation for z0 only
 def calc_z0_interpolaton(df, z0, z1, sub_type):
@@ -265,13 +311,12 @@ def calc_z0_interpolaton(df, z0, z1, sub_type):
 
     return interp_df
 
-
 # here we need to do a quadratic interpolation
 def calc_quad_interpolaton(df, z0, z1, sub_type):
     # calculate the ceil and floor of the given z0,z1 values
     z0_floor = np.floor(z0)
     z0_ceil = np.ceil(z0)
-    z1_floor = np.floor(z1)
+    z1_floor = np.floor(z1) 
     z1_ceil = np.ceil(z1)
 
     df_type = df[df['Status'] == sub_type]
@@ -310,23 +355,22 @@ def calc_quad_interpolaton(df, z0, z1, sub_type):
 # update the z0 displayed value
 @app.callback(
     dash.dependencies.Output('z0-value', 'children'),
-    [dash.dependencies.Input('z0-continuous-slider', 'value')])
+    [dash.dependencies.Input('cached-z0', 'value')])
 def update_z0_value(selected_z0):
     return 'z0 = ' + str(selected_z0)
 
 # update the z1 displayed value
 @app.callback(
     dash.dependencies.Output('z1-value', 'children'),
-    [dash.dependencies.Input('z1-continuous-slider', 'value')])
+    [dash.dependencies.Input('cached-z1', 'value')])
 def update_z1_value(selected_z1):
     return 'z1 = ' + str(selected_z1)
 
-
-# create callback to update graph based on user selection
+# create callback to update graph based on user selection 
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
-    [dash.dependencies.Input('z0-continuous-slider', 'value'),
-     dash.dependencies.Input('z1-continuous-slider', 'value'),
+    [dash.dependencies.Input('cached-z0', 'value'),
+     dash.dependencies.Input('cached-z1', 'value'),
      dash.dependencies.Input('marker-size', 'value'),
      dash.dependencies.Input('choose_healthy_non', 'value')])
 def update_graph(selected_z0, selected_z1, marker_size, selected_healthy_non):
@@ -337,12 +381,12 @@ def update_graph(selected_z0, selected_z1, marker_size, selected_healthy_non):
         filtered_df = filtered_df[filtered_df['z1'] == round((selected_z1 + 2), 2)]
         filtered_df = filtered_df[filtered_df['Status'] == selected_healthy_non]
     elif type(selected_z0) == int:
-        filtered_df = calc_z1_interpolaton(df, (selected_z0+2), round((selected_z1+2), 2), selected_healthy_non)
+        filtered_df = calc_z1_interpolaton(df, (selected_z0+2), round((selected_z1+2), 2), selected_healthy_non) 
     elif type(selected_z1) == int:
-        filtered_df = calc_z0_interpolaton(df, round((selected_z0+2), 2), (selected_z1+2), selected_healthy_non)
+        filtered_df = calc_z0_interpolaton(df, round((selected_z0+2), 2), (selected_z1+2), selected_healthy_non) 
     else:
         # values do not exist - calculate via interpolation
-        filtered_df = calc_quad_interpolaton(df, round((selected_z0+2), 2), round((selected_z1+2), 2), selected_healthy_non)
+        filtered_df = calc_quad_interpolaton(df, round((selected_z0+2), 2), round((selected_z1+2), 2), selected_healthy_non) 
 
     traces = []
 
@@ -358,7 +402,7 @@ def update_graph(selected_z0, selected_z1, marker_size, selected_healthy_non):
             marker={
                 'size': marker_size,
                 'color': filtered_df['color_val'],         # set color according to distance from mean as calculated above,
-                'colorscale': 'Cividis',
+                'colorscale': 'Hot',
                 'cmin': df['color_val'].min(),
                 'cmax': df['color_val'].max(),
                 'colorbar': {
@@ -373,9 +417,88 @@ def update_graph(selected_z0, selected_z1, marker_size, selected_healthy_non):
             margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
             uirevision='same',
             hovermode='closest',
-            showlegend=False
+            showlegend=False,
+            scene = dict(
+                xaxis = axis_template_3d( 'x' ),
+                yaxis = axis_template_3d( 'y' ),
+                zaxis = axis_template_3d( 'z' ),
+                camera = dict(
+                    up=dict(x=0, y=0, z=1),
+                    center=dict(x=0, y=0, z=0),
+                    eye=dict(x=0.08, y=2.2, z=0.08)
+                )
+            )
         )
     }
 
+# start counter from 0 once button is clicked
+@app.callback(
+    dash.dependencies.Output('interval-comp-z0', 'n_intervals'),
+    [dash.dependencies.Input('z0-button', 'n_clicks')])
+def z0_btn_clicked(btn_click):
+    return 0
+
+# change button displays on click
+@app.callback(
+    dash.dependencies.Output('z0-button', 'children'),
+    [dash.dependencies.Input('z0-button', 'n_clicks')])
+def z0_btn_display_text(n_clicks):
+    if n_clicks is None:
+        return 'Play'
+    elif type(n_clicks) is int:
+        if n_clicks%2==0:
+            return 'Play'
+        else:
+            return 'Stop'
+
+@app.callback(
+    dash.dependencies.Output('z1-button', 'children'),
+    [dash.dependencies.Input('z1-button', 'n_clicks')])
+def z1_btn_display_text(n_clicks):
+    if n_clicks is None:
+        return 'Play'
+    elif type(n_clicks) is int:
+        if n_clicks%2==0:
+            return 'Play'
+        else:
+            return 'Stop'
+
+
+
+# if button is clicked every 1 second change value - short demo
+# else update value when selected by user from slider
+@app.callback(
+    dash.dependencies.Output('cached-z0', 'value'), 
+    [dash.dependencies.Input('z0-button', 'children'),
+    dash.dependencies.Input('interval-comp-z0', 'n_intervals'),
+    dash.dependencies.Input('z0-continuous-slider', 'value')])
+def on_z0_click(z0_btn_click, count_z0_interval, z0_slider_val):    
+    # don't do this when application is loaded for the first time
+    if z0_btn_click=='Stop' and count_z0_interval < 81:
+        value = slider_vals[count_z0_interval]
+        return round(value, 2)
+    else:
+        return z0_slider_val
+
+# start counter from 0 once button is clicked
+@app.callback(
+    dash.dependencies.Output('interval-comp-z1', 'n_intervals'),
+    [dash.dependencies.Input('z1-button', 'n_clicks')])
+def z1_btn_clicked(btn_click):
+    return 0
+
+@app.callback(
+    dash.dependencies.Output('cached-z1', 'value'), 
+    [dash.dependencies.Input('z1-button', 'children'),
+    dash.dependencies.Input('interval-comp-z1', 'n_intervals'),
+    dash.dependencies.Input('z1-continuous-slider', 'value')])
+def on_z1_click(z1_btn_click, count_z1_interval, z1_slider_val):
+    # don't do this when application is loaded for the first time
+    if z1_btn_click=='Stop' and count_z1_interval < 81:
+        value = slider_vals[count_z1_interval]
+        return round(value, 2)
+    else:
+        return z1_slider_val
+
 if __name__ == '__main__':
-    app.run_server(debug=False, port=8060)
+    app.run_server(debug=True, port=8050)
