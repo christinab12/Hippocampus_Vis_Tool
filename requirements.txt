@@ -32,7 +32,7 @@ dltk==0.2.1
 dnspython==1.15.0
 docutils==0.14
 easydict==1.7
-ecdsa==0.13
+ecdsa==0.13.3
 Electrum==3.0.2
 entrypoints==0.2.3
 enum34==1.1.6
