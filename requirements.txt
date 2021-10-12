@@ -96,7 +96,7 @@ oauthlib==1.0.3
 onboard==1.2.0
 open3d==0+unknown
 open3d-python==0.4.0.0
-opencv-python==3.4.2.17
+opencv-python==4.2.0.32
 packaging==18.0
 padme==1.1.1
 pandas==0.23.0
