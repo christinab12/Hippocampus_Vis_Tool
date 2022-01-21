@@ -51,7 +51,7 @@ humanfriendly==4.12.1
 idna==2.7
 imageio==2.4.1
 ipykernel==5.1.0
-ipython==6.5.0
+ipython==7.16.3
 ipython-genutils==0.2.0
 ipywidgets==7.2.1
 itk==4.13.0
