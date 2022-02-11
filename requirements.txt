@@ -120,7 +120,7 @@ progressbar==2.5
 progressbar33==2.4
 prometheus-client==0.3.1
 prompt-toolkit==1.0.15
-protobuf==3.6.0
+protobuf==3.15.0
 ptvsd==4.2.0
 ptyprocess==0.6.0
 pyaes==1.6.1
