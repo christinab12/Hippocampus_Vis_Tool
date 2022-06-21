@@ -91,7 +91,7 @@ networkx==2.1
 nibabel==2.2.1
 NiftyNet==0.3.0
 notebook>=5.7.8
-numpy==1.15.0
+numpy==1.22.0
 oauthlib==1.0.3
 onboard==1.2.0
 open3d==0+unknown
